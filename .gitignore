@@ -1,0 +1,13 @@
+# Môi trường ảo
+env/
+venv/
+
+# File tạm của Python
+__pycache__/
+*.pyc
+
+# File chứa API Key hoặc dữ liệu nhạy cảm (nếu em có lưu ra file riêng)
+.env
+
+# File rác của hệ thống
+.DS_Store
