@@ -1,0 +1,41 @@
+/* --- style.css --- */
+
+/* Màu nền tổng thể */
+.stApp { 
+    background-color: #FFF6F6; 
+}
+
+/* Tiêu đề */
+h1, h2, h3 { 
+    color: #FF7E67; 
+    font-family: 'Comic Sans MS', 'Nunito', sans-serif; 
+    text-align: center; 
+}
+
+/* Làm đẹp nút bấm tổng thể */
+.stButton > button {
+    background-color: #FF7E67 !important; 
+    color: white !important;
+    border-radius: 20px !important; 
+    border: none !important; 
+    font-weight: bold !important;
+    padding: 15px 30px !important; 
+    width: 100%; 
+    transition: 0.3s;
+}
+
+/* Hiệu ứng khi di chuột vào nút */
+.stButton > button:hover { 
+    background-color: #FF5A3D !important; 
+    transform: scale(1.02); 
+}
+
+/* CSS cho Thẻ chủ đề (Topic Cards) và Animal Cards */
+div[data-testid="column"] {
+    background-color: white; 
+    border-radius: 15px; 
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+    text-align: center; 
+    border: 2px solid #FFEAEA;
+}
