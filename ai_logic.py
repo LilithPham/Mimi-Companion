@@ -1,12 +1,23 @@
 import os
+from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from models import MimiQuestion, MimiEvaluation
 
+# 1. TẢI BIẾN MÔI TRƯỜNG TỪ FILE .env
+load_dotenv()
+
 class MimiBrain:
-    def __init__(self, api_key: str):
+    def __init__(self):
+        # 2. TỰ ĐỘNG LẤY API KEY TỪ "KÉT SẮT"
+        api_key = os.getenv("GEMINI_API_KEY")
+        
+        # Báo lỗi ngay nếu file .env chưa có hoặc nhập sai tên biến
+        if not api_key:
+            raise ValueError("Không tìm thấy GEMINI_API_KEY! Hãy kiểm tra lại file .env")
+            
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-flash-latest",
+            model="gemini-1.5-flash-latest", # Nên dùng bản 1.5 để tốc độ phản hồi nhanh nhất
             google_api_key=api_key,
             temperature=0.7 
         )
