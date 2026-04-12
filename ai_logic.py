@@ -4,20 +4,29 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from models import MimiQuestion, MimiEvaluation
 
-# 1. TẢI BIẾN MÔI TRƯỜNG TỪ FILE .env
-load_dotenv()
+# --- BẮT ĐẦU ĐOẠN CODE ÉP ĐỌC FILE ---
+# Lấy đường dẫn chính xác của thư mục dự án
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ENV_PATH = os.path.join(BASE_DIR, ".env")
+
+# Ép hệ thống đọc ĐÚNG cái file ở đường dẫn đó
+load_dotenv(dotenv_path=ENV_PATH, override=True)
 
 class MimiBrain:
     def __init__(self):
-        # 2. TỰ ĐỘNG LẤY API KEY TỪ "KÉT SẮT"
         api_key = os.getenv("GEMINI_API_KEY")
         
-        # Báo lỗi ngay nếu file .env chưa có hoặc nhập sai tên biến
+        # Báo cáo thám tử (sẽ in ra ở màn hình đen Terminal)
+        print(f"👉 Tọa độ két sắt: {ENV_PATH}")
+        print(f"👉 Chìa khóa lấy được: {api_key}")
+        
         if not api_key:
-            raise ValueError("Không tìm thấy GEMINI_API_KEY! Hãy kiểm tra lại file .env")
+            raise ValueError(f"Không tìm thấy Key! Đã dò tìm tại: {ENV_PATH}")
+            
+        # ... (Phần code bên dưới của em giữ nguyên)
             
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash-latest", # Nên dùng bản 1.5 để tốc độ phản hồi nhanh nhất
+            model="gemini-flash-latest", # Nên dùng bản 1.5 để tốc độ phản hồi nhanh nhất
             google_api_key=api_key,
             temperature=0.7 
         )
