@@ -63,24 +63,29 @@ elif st.session_state.page == "auth":
         st.subheader("Welcome back!")
         email = st.text_input("📧 Email")
         pwd = st.text_input("🔑 Password", type="password")
-        api_key = st.text_input("⚡ Gemini API Key:", type="password")
-        if st.button("Login Now"):
-            if api_key:
-                st.session_state.mimi_bot = MimiBrain(api_key=api_key)
-                st.session_state.user_info = {"name": "Student"}
+        
+        # CHỈ CÒN LẠI NÚT LOGIN
+        if st.button("Login Now", type="primary"):
+            if email and pwd:
+                st.session_state.mimi_bot = MimiBrain() # Không cần truyền API Key nữa
+                st.session_state.user_info = {"name": email.split('@')[0]} # Tạm lấy tên từ email
                 switch_page("animal_selection")
-            else: st.error("Please enter your API Key!")
+            else: 
+                st.error("Please enter your Email and Password!")
 
     with tab_signup:
         st.subheader("Join the Mimi Squad!")
         nickname = st.text_input("🏷️ Nickname")
-        new_api = st.text_input("⚡ New Gemini API Key:", type="password")
-        if st.button("Create Account"):
-            if new_api and nickname:
-                st.session_state.mimi_bot = MimiBrain(api_key=new_api)
+        new_email = st.text_input("📧 Email Address")
+        new_pwd = st.text_input("🔑 Create Password", type="password")
+        
+        if st.button("Create Account", type="primary"):
+            if nickname and new_email and new_pwd:
+                st.session_state.mimi_bot = MimiBrain() # Không cần truyền API Key nữa
                 st.session_state.user_info = {"name": nickname}
                 switch_page("animal_selection")
-            else: st.error("Information missing!")
+            else: 
+                st.error("Information missing!")
 
 # ==========================================
 # 🛑 PAGE 3: CHOOSE MIMI ANIMAL TYPE
