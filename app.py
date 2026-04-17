@@ -42,15 +42,25 @@ def switch_page(page_name):
     st.rerun()
 
 # ==========================================
-# 🛑 PAGE 1: WELCOME SCREEN
+# 🛑 PAGE 1: WELCOME SCREEN (Căn giữa tuyệt đối)
 # ==========================================
 if st.session_state.page == "welcome":
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-    st.image("https://cdn-icons-png.flaticon.com/512/3750/3750731.png", width=150)
-    st.title("Hello, this is MIMI")
-    st.markdown("<h3 style='color: gray; font-size: 20px;'>Your friendly speaking partner</h3>", unsafe_allow_html=True)
-    if st.button("🚀 Let's Start"):
-        switch_page("auth")
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    
+    # 1. CĂN GIỮA ICON
+    col_img1, col_img_center, col_img3 = st.columns([1.5, 1, 1.5])
+    with col_img_center:
+        st.image("https://cdn-icons-png.flaticon.com/512/616/616490.png", use_container_width=True)
+    
+    # 2. TIÊU ĐỀ VÀ MÔ TẢ 
+    st.markdown("<h1 style='text-align: center; color: #FF7E67; font-size: 3rem; margin-bottom: 0; margin-top: 10px;'>Hello, this is MIMI</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 1.2rem; color: #7A7A7A;'>Your friendly speaking partner</p><br>", unsafe_allow_html=True)
+    
+    # 3. CĂN GIỮA NÚT BẤM
+    col_btn1, col_btn_center, col_btn3 = st.columns([1, 1, 1])
+    with col_btn_center:
+        if st.button("🚀 Let's Start", key="welcome_start", use_container_width=True):
+            switch_page("auth")
 
 # ==========================================
 # 🛑 PAGE 2: AUTHENTICATION
@@ -64,11 +74,10 @@ elif st.session_state.page == "auth":
         email = st.text_input("📧 Email")
         pwd = st.text_input("🔑 Password", type="password")
         
-        # CHỈ CÒN LẠI NÚT LOGIN
         if st.button("Login Now", type="primary"):
             if email and pwd:
-                st.session_state.mimi_bot = MimiBrain() # Không cần truyền API Key nữa
-                st.session_state.user_info = {"name": email.split('@')[0]} # Tạm lấy tên từ email
+                st.session_state.mimi_bot = MimiBrain()
+                st.session_state.user_info = {"name": email.split('@')[0]}
                 switch_page("animal_selection")
             else: 
                 st.error("Please enter your Email and Password!")
@@ -81,7 +90,7 @@ elif st.session_state.page == "auth":
         
         if st.button("Create Account", type="primary"):
             if nickname and new_email and new_pwd:
-                st.session_state.mimi_bot = MimiBrain() # Không cần truyền API Key nữa
+                st.session_state.mimi_bot = MimiBrain()
                 st.session_state.user_info = {"name": nickname}
                 switch_page("animal_selection")
             else: 
@@ -122,39 +131,43 @@ elif st.session_state.page == "practice":
     st.divider()
 
     if not st.session_state.current_topic:
-        st.title("📚 What would you like to talk about?")
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; color: #2C3E50; margin-bottom: 30px;'>📚 What would you like to talk about?</h1>", unsafe_allow_html=True)
         
-        r1_c1, r1_c2 = st.columns(2)
-        r2_c1, r2_c2 = st.columns(2)
-        
-        with r1_c1:
-            st.image("https://cdn-icons-png.flaticon.com/512/3349/3349080.png", width=80)
-            st.subheader("Family & Friends")
-            if st.button("Choose this Topic", key="btn_family"):
-                st.session_state.current_topic = "Family and Friends"
-                st.rerun()
-                
-        with r1_c2:
-            st.image("https://cdn-icons-png.flaticon.com/512/2809/2809793.png", width=80)
-            st.subheader("Personal Hobbies")
-            if st.button("Choose this Topic", key="btn_hobby"):
-                st.session_state.current_topic = "Hobbies and Free time"
-                st.rerun()
+        # --- DANH SÁCH 8 CHỦ ĐỀ ---
+        topics_data = [
+            {"title": "Family & Friends", "icon": "https://cdn-icons-png.flaticon.com/128/12649/12649716.png", "val": "Family and Friends"},
+            {"title": "Personal Hobbies", "icon": "https://cdn-icons-png.flaticon.com/128/3588/3588658.png", "val": "Hobbies and Free time"},
+            {"title": "Food & Dining", "icon": "https://cdn-icons-png.flaticon.com/128/2276/2276931.png", "val": "Food and Drinks"},
+            {"title": "Pets & Animals", "icon": "https://cdn-icons-png.flaticon.com/128/8182/8182996.png", "val": "Pets and Animals"},
+            {"title": "Travel & Holidays", "icon": "https://cdn-icons-png.flaticon.com/128/5333/5333722.png", "val": "Travel and Holidays"}, 
+            {"title": "School & Study", "icon": "https://cdn-icons-png.flaticon.com/128/13540/13540886.png", "val": "School and Study"},
+            {"title": "Work & Jobs", "icon": "https://cdn-icons-png.flaticon.com/128/3850/3850285.png", "val": "Work and Jobs"},
+            {"title": "Sports & Health", "icon": "https://cdn-icons-png.flaticon.com/128/4163/4163684.png", "val": "Sports and Health"}
+        ]
 
-        with r2_c1:
-            st.image("https://cdn-icons-png.flaticon.com/512/3014/3014491.png", width=80)
-            st.subheader("Food & Dining")
-            if st.button("Choose this Topic", key="btn_food"):
-                st.session_state.current_topic = "Food and Drinks"
-                st.rerun()
-
-        with r2_c2:
-            st.image("https://cdn-icons-png.flaticon.com/512/2060/2060284.png", width=80)
-            st.subheader("Pets & Animals")
-            if st.button("Choose this Topic", key="btn_pet"):
-                st.session_state.current_topic = "Pets and Animals"
-                st.rerun()
+        # --- BỐ CỤC LƯỚI (Chia thành từng hàng, mỗi hàng 4 cột) ---
+        for i in range(0, len(topics_data), 4): 
+            cols = st.columns(4) 
+            
+            for j in range(4):
+                if i + j < len(topics_data):
+                    topic = topics_data[i + j]
+                    with cols[j]:
+                        # 🔥 Gộp chung Icon và Chữ vào 1 khối có chiều cao cố định (160px)
+                        html_content = f"""
+                        <div style="height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;">
+                            <img src="{topic['icon']}" width="80" style="margin-bottom: 15px;">
+                            <h4 style="text-align: center; color: #34495E; margin: 0; line-height: 1.3;">
+                                {topic['title']}
+                            </h4>
+                        </div>
+                        """
+                        st.markdown(html_content, unsafe_allow_html=True)
+                        
+                        # Nút bấm tự do nằm ở dưới khối 160px
+                        if st.button("Select", key=f"btn_{topic['val']}", use_container_width=True):
+                            st.session_state.current_topic = topic["val"]
+                            st.rerun()
 
     else:
         # --- CHAT INTERFACE ---
@@ -182,7 +195,6 @@ elif st.session_state.page == "practice":
             with st.chat_message("user"):
                 st.write("🎙️ **Bảng điều khiển Ghi âm (Dành cho Vy ráp code):**")
                 
-                # --- DÀN NÚT BẤM STATE MACHINE ---
                 col_play, col_pause, col_stop, col_reset = st.columns(4)
 
                 with col_play:
@@ -206,7 +218,6 @@ elif st.session_state.page == "practice":
                         st.session_state.recorded_text = ""
                         st.rerun()
 
-                # --- HIỂN THỊ TRẠNG THÁI ---
                 st.markdown("<br>", unsafe_allow_html=True)
                 
                 if st.session_state.audio_state == "recording":
@@ -218,7 +229,6 @@ elif st.session_state.page == "practice":
                 elif st.session_state.audio_state == "stopped":
                     st.success("✅ Đã thu âm xong! Sẵn sàng gửi cho hệ thống AI...")
                     
-                    # Khung text để Thu test logic AI trong khi chờ Vy làm Audio
                     st.session_state.recorded_text = st.text_area("Vy sẽ trả text từ Whisper vào đây. Giờ Thu cứ gõ để test:", value=st.session_state.recorded_text)
                     
                     if st.button("Gửi cho Mimi chấm bài", type="primary"):
@@ -244,7 +254,6 @@ elif st.session_state.page == "practice":
                                     st.divider()
                                     st.success(f"{st.session_state.selected_mimi} has the next question ready!")
                                     
-                                    # KHI BẤM NÚT NÀY SẼ RESET LUÔN TRẠNG THÁI AUDIO
                                     if st.button("Continue Conversation ➡️", use_container_width=True):
                                         st.session_state.current_question = eval_data.next_question
                                         st.session_state.audio_state = "idle" 

@@ -1,41 +1,79 @@
-/* --- style.css --- */
+/* =========================================
+   STYLE.CSS - Cập nhật cho trang Welcome 
+   ========================================= */
 
-/* Màu nền tổng thể */
+/* --- TẠO BỐ CỤC CHUNG CHO TOÀN BỘ APP --- */
 .stApp { 
-    background-color: #FFF6F6; 
+    background-color: #FFF6F6; /* Màu nền hồng nhạt */
+    font-family: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Tiêu đề */
-h1, h2, h3 { 
-    color: #FF7E67; 
-    font-family: 'Comic Sans MS', 'Nunito', sans-serif; 
-    text-align: center; 
+/* --- CĂN GIỮA MỌI THỨ CHO TRANG WELCOME --- */
+/* (Streamlit dùng class .stMain để bao bọc nội dung chính) */
+.stApp .stMain > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Căn giữa theo chiều ngang */
+    justify-content: center; /* Căn giữa theo chiều dọc nếu có thể */
 }
 
-/* Làm đẹp nút bấm tổng thể */
-.stButton > button {
-    background-color: #FF7E67 !important; 
-    color: white !important;
-    border-radius: 20px !important; 
-    border: none !important; 
+/* --- LÀM ĐẸP ICON (Hình ảnh) TRANG WELCOME --- */
+.stApp img {
+    border-radius: 20px; /* Bo góc nhẹ cho hình */
+    margin-top: 30px; /* Tạo khoảng cách với đỉnh trang */
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* --- LÀM ĐẸP TIÊU ĐỀ H1 (Hello, this is MIMI) --- */
+h1 {
+    color: #FF7E67; /* Màu cam hồng chủ đạo */
+    text-align: center;
+    font-size: 3rem !important; /* Phóng to tiêu đề */
+    font-weight: bold;
+    margin-top: 15px !important;
+    margin-bottom: 0px !important;
+}
+
+/* --- LÀM ĐẸP DÒNG MÔ TẢ (Your friendly speaking partner) --- */
+/* (Tùy thuộc vào cách em viết trong app.py, thầy sẽ dùng class chung .stMarkdown p) */
+.stApp .stMarkdown p {
+    text-align: center;
+    color: #7A7A7A; /* Màu xám nhẹ cho dòng mô tả */
+    font-size: 1.2rem;
+    margin-top: 5px !important;
+}
+
+/* =========================================
+   2. "NÂNG CẤP" SIÊU CẤP CHO NÚT BẤM (BUTTON) 
+   ========================================= */
+
+/* --- CĂN GIỮA VÀ PHÓNG TO NÚT --- */
+div.stButton {
+    display: flex;
+    justify-content: center; /* Đưa container nút ra giữa */
+    width: 100%;
+    margin-top: 30px;
+}
+
+div.stButton > button {
+    background-color: #FF7E67 !important; /* Màu nền cam hồng */
+    color: white !important; /* Màu chữ trắng */
+    border-radius: 50px !important; /* Bo tròn hoàn toàn dạng viên thuốc */
+    border: none !important;
+    font-size: 1.3rem !important; /* Phóng to font chữ trong nút */
     font-weight: bold !important;
-    padding: 15px 30px !important; 
-    width: 100%; 
-    transition: 0.3s;
+    padding: 15px 40px !important; /* Tăng khoảng cách đệm (Padding) để nút to ra */
+    width: auto !important; /* Nút sẽ tự co dãn theo nội dung chữ */
+    min-width: 250px; /* Nhưng có độ rộng tối thiểu để nhìn cho cân */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Thêm đổ bóng nhẹ cho sang */
+    transition: 0.3s ease; /* Hiệu ứng mượt mà khi di chuột */
 }
 
-/* Hiệu ứng khi di chuột vào nút */
-.stButton > button:hover { 
-    background-color: #FF5A3D !important; 
-    transform: scale(1.02); 
-}
-
-/* CSS cho Thẻ chủ đề (Topic Cards) và Animal Cards */
-div[data-testid="column"] {
-    background-color: white; 
-    border-radius: 15px; 
-    padding: 15px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-    text-align: center; 
-    border: 2px solid #FFEAEA;
+/* --- HIỆU ỨNG KHI USER DI CHUỘT VÀO NÚT (HOVER) --- */
+div.stButton > button:hover {
+    background-color: #FF5A3D !important; /* Đổi màu đậm hơn */
+    transform: scale(1.05); /* Phóng to nút một chút xíu nhìn cho tương tác */
+    box-shadow: 0 6px 10px rgba(0,0,0,0.15); /* Tăng đổ bóng */
 }
