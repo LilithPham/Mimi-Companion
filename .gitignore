@@ -11,3 +11,5 @@ __pycache__/
 
 # File rác của hệ thống
 .DS_Store
+speechocean762/
+mock_test_audio/

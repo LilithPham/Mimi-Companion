@@ -37,7 +37,6 @@ h1 {
 }
 
 /* --- LÀM ĐẸP DÒNG MÔ TẢ (Your friendly speaking partner) --- */
-/* (Tùy thuộc vào cách em viết trong app.py, thầy sẽ dùng class chung .stMarkdown p) */
 .stApp .stMarkdown p {
     text-align: center;
     color: #7A7A7A; /* Màu xám nhẹ cho dòng mô tả */
@@ -74,6 +73,6 @@ div.stButton > button {
 /* --- HIỆU ỨNG KHI USER DI CHUỘT VÀO NÚT (HOVER) --- */
 div.stButton > button:hover {
     background-color: #FF5A3D !important; /* Đổi màu đậm hơn */
-    transform: scale(1.05); /* Phóng to nút một chút xíu nhìn cho tương tác */
+    transform: scale(1.05); 
     box-shadow: 0 6px 10px rgba(0,0,0,0.15); /* Tăng đổ bóng */
 }
