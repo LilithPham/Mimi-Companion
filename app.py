@@ -1,6 +1,64 @@
 import streamlit as st
 from ai_logic import MimiBrain
 
+# ==========================================
+# 🎙️ VY'S AUDIO PROCESSOR
+# ==========================================
+import base64
+import io
+import os
+from dotenv import load_dotenv
+from pydub import AudioSegment
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import HumanMessage
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"), override=True)
+
+class AudioProcessor:
+    def __init__(self):
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("Không tìm thấy GEMINI_API_KEY trong .env!")
+        # gemini-1.5-flash supports inline audio (base64) natively
+        self.llm = ChatGoogleGenerativeAI(
+            model="gemini-1.5-flash",
+            google_api_key=api_key,
+            temperature=0,
+        )
+
+    def process(self, audio_bytes: bytes, mime: str = "audio/webm") -> dict:
+        """Nhận raw bytes từ browser, convert sang WAV, gửi Gemini transcribe."""
+        # Convert bất kỳ định dạng nào → WAV PCM (Gemini chấp nhận audio/wav)
+        fmt = mime.split("/")[1].split(";")[0]
+        buf = io.BytesIO(audio_bytes)
+        audio = AudioSegment.from_file(buf, format=fmt)
+        wav_buf = io.BytesIO()
+        audio.export(wav_buf, format="wav")
+        wav_b64 = base64.b64encode(wav_buf.getvalue()).decode("utf-8")
+
+        message = HumanMessage(content=[
+            {
+                "type": "media",
+                "mime_type": "audio/wav",
+                "data": wav_b64,
+            },
+            {
+                "type": "text",
+                "text": (
+                    "Transcribe the spoken English in this audio exactly as heard. "
+                    "Return ONLY the transcript text, nothing else."
+                ),
+            },
+        ])
+        response = self.llm.invoke([message])
+        transcript = response.content.strip()
+        return {
+            "transcript": transcript,
+            "language": "en",
+            "duration": round(len(audio) / 1000, 1),
+        }
+
 # --- 1. CONFIG & ANIMAL DATA ---
 st.set_page_config(page_title="Mimi Companion", page_icon="🐾", layout="centered")
 
@@ -36,6 +94,12 @@ if "audio_state" not in st.session_state:
     st.session_state.audio_state = "idle" # Các trạng thái: idle, recording, paused, stopped
 if "recorded_text" not in st.session_state:
     st.session_state.recorded_text = ""
+# --- VY: audio processor singleton ---
+if "audio_processor" not in st.session_state:
+    try:
+        st.session_state.audio_processor = AudioProcessor()
+    except ValueError:
+        st.session_state.audio_processor = None
 
 def switch_page(page_name):
     st.session_state.page = page_name
@@ -193,43 +257,166 @@ elif st.session_state.page == "practice":
                     st.write(f"🇻🇳 {q.full_translation_vi}")
 
             with st.chat_message("user"):
-                st.write("🎙️ **Bảng điều khiển Ghi âm (Dành cho Vy ráp code):**")
-                
-                col_play, col_pause, col_stop, col_reset = st.columns(4)
+                st.write("🎙️ **Bảng điều khiển Ghi âm:**")
 
-                with col_play:
-                    if st.button("▶️ Record/Resume", disabled=(st.session_state.audio_state == "recording"), use_container_width=True):
-                        st.session_state.audio_state = "recording"
-                        st.rerun()
+                # ── VY: MediaRecorder component ──────────────────────────────
+                # Inject JS recorder + hidden base64 output into Streamlit via
+                # st.components.v1.html.  The recorder posts its result back by
+                # writing to a hidden <textarea> whose value Streamlit reads via
+                # a form submit.  This keeps everything inside one rerun cycle.
+                import streamlit.components.v1 as components
 
-                with col_pause:
-                    if st.button("⏸️ Pause", disabled=(st.session_state.audio_state != "recording"), use_container_width=True):
-                        st.session_state.audio_state = "paused"
-                        st.rerun()
+                recorder_html = """
+<style>
+  #rec-wrap{font-family:sans-serif;display:flex;flex-direction:column;gap:10px}
+  .rec-row{display:flex;gap:8px;flex-wrap:wrap}
+  button{padding:8px 16px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:14px}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  #status{font-size:13px;color:#555;min-height:20px}
+  #timer{font-family:monospace;font-size:13px;color:#555}
+  audio{width:100%;margin-top:6px;border-radius:8px}
+</style>
+<div id="rec-wrap">
+  <div class="rec-row">
+    <button id="btn-rec"     onclick="startRec()">▶️ Record</button>
+    <button id="btn-pause"   onclick="togglePause()" disabled>⏸️ Pause</button>
+    <button id="btn-stop"    onclick="stopRec()"     disabled>⏹️ Stop & Send</button>
+    <button id="btn-reset"   onclick="resetRec()">🔄 Reset</button>
+    <span   id="timer">0:00</span>
+  </div>
+  <div id="status">Nhấn Record để bắt đầu ghi âm.</div>
+  <div id="audio-wrap"></div>
+  <!-- Hidden form that posts base64 WAV back to Streamlit parent -->
+  <form id="audio-form" method="POST">
+    <input type="hidden" id="audio-b64" name="audio_b64" value="">
+    <input type="hidden" id="audio-mime" name="audio_mime" value="">
+  </form>
+</div>
+<script>
+let mediaRec, chunks=[], stream, timerInt, elapsed=0, paused=false;
 
-                with col_stop:
-                    if st.button("⏹️ Stop & Send", type="primary", disabled=(st.session_state.audio_state in ["idle", "stopped"]), use_container_width=True):
-                        st.session_state.audio_state = "stopped"
-                        st.rerun()
+function tick(){
+  elapsed++;
+  let m=Math.floor(elapsed/60), s=elapsed%60;
+  document.getElementById('timer').textContent=m+':'+(s<10?'0':'')+s;
+}
 
-                with col_reset:
-                    if st.button("🔄 Reset", use_container_width=True):
-                        st.session_state.audio_state = "idle"
-                        st.session_state.recorded_text = ""
-                        st.rerun()
+async function startRec(){
+  if(paused && mediaRec){
+    mediaRec.resume(); clearInterval(timerInt); timerInt=setInterval(tick,1000);
+    document.getElementById('btn-pause').textContent='⏸️ Pause'; paused=false;
+    document.getElementById('status').textContent='🔴 Đang ghi âm...'; return;
+  }
+  try{ stream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e){ document.getElementById('status').textContent='⚠️ Không thể truy cập micro: '+e.message; return; }
+  chunks=[]; elapsed=0; paused=false;
+  mediaRec=new MediaRecorder(stream);
+  mediaRec.ondataavailable=e=>{ if(e.data.size>0) chunks.push(e.data); };
+  mediaRec.onstop=finishRec;
+  mediaRec.start(250);
+  timerInt=setInterval(tick,1000);
+  document.getElementById('btn-rec').disabled=true;
+  document.getElementById('btn-pause').disabled=false;
+  document.getElementById('btn-stop').disabled=false;
+  document.getElementById('status').textContent='🔴 Đang ghi âm...';
+}
+
+function togglePause(){
+  if(!mediaRec) return;
+  if(mediaRec.state==='recording'){
+    mediaRec.pause(); clearInterval(timerInt); paused=true;
+    document.getElementById('btn-pause').textContent='▶️ Resume';
+    document.getElementById('status').textContent='⏸️ Đã tạm dừng. Nhấn Resume để nói tiếp.';
+  } else {
+    mediaRec.resume(); timerInt=setInterval(tick,1000); paused=false;
+    document.getElementById('btn-pause').textContent='⏸️ Pause';
+    document.getElementById('status').textContent='🔴 Đang ghi âm...';
+  }
+}
+
+function stopRec(){
+  if(!mediaRec) return;
+  mediaRec.stop(); stream.getTracks().forEach(t=>t.stop()); clearInterval(timerInt);
+  document.getElementById('btn-rec').disabled=false;
+  document.getElementById('btn-pause').disabled=true;
+  document.getElementById('btn-stop').disabled=true;
+  document.getElementById('status').textContent='⏳ Đang xử lý...';
+}
+
+function resetRec(){
+  if(mediaRec && mediaRec.state!=='inactive'){ mediaRec.stop(); }
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  clearInterval(timerInt); chunks=[]; elapsed=0; paused=false;
+  document.getElementById('btn-rec').disabled=false;
+  document.getElementById('btn-pause').disabled=true;
+  document.getElementById('btn-stop').disabled=true;
+  document.getElementById('btn-pause').textContent='⏸️ Pause';
+  document.getElementById('timer').textContent='0:00';
+  document.getElementById('status').textContent='Nhấn Record để bắt đầu ghi âm.';
+  document.getElementById('audio-wrap').innerHTML='';
+  window.parent.postMessage({type:'streamlit:setComponentValue', value:null}, '*');
+}
+
+function finishRec(){
+  const mime = chunks[0]?.type || 'audio/webm';
+  const blob = new Blob(chunks, {type: mime});
+  const url  = URL.createObjectURL(blob);
+
+  // Playback preview
+  const a=document.createElement('audio'); a.src=url; a.controls=true;
+  document.getElementById('audio-wrap').innerHTML=''; 
+  document.getElementById('audio-wrap').appendChild(a);
+  document.getElementById('status').textContent='✅ Xong! Đang gửi lên Gemini...';
+
+  // Convert to base64 and send to Streamlit
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const b64=reader.result.split(',')[1];
+    window.parent.postMessage({
+      type:'streamlit:setComponentValue',
+      value: JSON.stringify({audio_b64: b64, mime: mime})
+    }, '*');
+  };
+  reader.readAsDataURL(blob);
+}
+</script>
+"""
+                audio_result = components.html(recorder_html, height=160, scrolling=False)
+
+                # ── VY: Process audio when component returns data ────────────
+                if audio_result:
+                    import json as _json
+                    try:
+                        payload = _json.loads(audio_result)
+                        audio_bytes = base64.b64decode(payload["audio_b64"])
+                        mime        = payload.get("mime", "audio/webm")
+                        processor   = st.session_state.audio_processor
+                        if processor is None:
+                            st.error("❌ GEMINI_API_KEY chưa được cấu hình trong .env!")
+                        else:
+                            with st.spinner("🎧 Gemini đang phiên âm..."):
+                                stt_result = processor.process(audio_bytes, mime)
+                            st.session_state.recorded_text = stt_result["transcript"]
+                            st.session_state.audio_state   = "stopped"
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Lỗi xử lý audio: {e}")
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                
+
                 if st.session_state.audio_state == "recording":
-                    st.info("🔴 Đang ghi âm... (Đoạn này Vy sẽ ráp code bật Micro)")
-                
+                    st.info("🔴 Đang ghi âm...")
+
                 elif st.session_state.audio_state == "paused":
-                    st.warning("⏸️ Đã tạm dừng. Bấm 'Record/Resume' để nói tiếp.")
-                
+                    st.warning("⏸️ Đã tạm dừng. Nhấn Resume để nói tiếp.")
+
                 elif st.session_state.audio_state == "stopped":
                     st.success("✅ Đã thu âm xong! Sẵn sàng gửi cho hệ thống AI...")
-                    
-                    st.session_state.recorded_text = st.text_area("Vy sẽ trả text từ Whisper vào đây. Giờ Thu cứ gõ để test:", value=st.session_state.recorded_text)
+
+                    st.session_state.recorded_text = st.text_area(
+                        "📝 Transcript từ Whisper (có thể sửa trước khi gửi):",
+                        value=st.session_state.recorded_text
+                    )
                     
                     if st.button("Gửi cho Mimi chấm bài", type="primary"):
                         if st.session_state.recorded_text:
