@@ -16,14 +16,10 @@ class MimiBrain:
     def __init__(self):
         api_key = os.getenv("GEMINI_API_KEY")
         
-        # Báo cáo thám tử (sẽ in ra ở màn hình đen Terminal)
-        print(f"👉 Tọa độ két sắt: {ENV_PATH}")
-        print(f"👉 Chìa khóa lấy được: {api_key}")
+        # ĐÃ XÓA 2 LỆNH PRINT TIẾNG VIỆT ĐỂ MÁY CHỦ CLOUD KHÔNG BỊ LỖI ASCII
         
         if not api_key:
-            raise ValueError(f"Không tìm thấy Key! Đã dò tìm tại: {ENV_PATH}")
-            
-        # ... (Phần code bên dưới của em giữ nguyên)
+            raise ValueError("Không tìm thấy GEMINI_API_KEY!")
             
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-flash-latest", # Nên dùng bản 1.5 để tốc độ phản hồi nhanh nhất
