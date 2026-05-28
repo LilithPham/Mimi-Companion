@@ -3,22 +3,25 @@ from firebase_admin import credentials, firestore
 from datetime import datetime
 import os
 import hashlib
+import streamlit as st
+import json
 
 # ==========================================
-# 🔥 1. KHỞI TẠO KẾT NỐI FIREBASE
+# 🔥 1. KHỞI TẠO KẾT NỐI FIREBASE (HỖ TRỢ CLOUD)
 # ==========================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 KEY_PATH = os.path.join(BASE_DIR, "firebase_key.json")
 
 if not firebase_admin._apps:
     if os.path.exists(KEY_PATH):
+        # Chạy ở máy tính local (Dùng file json)
         cred = credentials.Certificate(KEY_PATH)
         firebase_admin.initialize_app(cred)
     else:
-        cred = credentials.ApplicationDefault() 
-        firebase_admin.initialize_app(cred, {
-            'projectId': 'iot-secod-year',
-        })
+        # Chạy trên mây Streamlit Cloud (Đọc từ Két sắt Secrets)
+        firebase_credentials = dict(st.secrets["firebase"])
+        cred = credentials.Certificate(firebase_credentials)
+        firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
@@ -108,7 +111,7 @@ def save_feedback(session_id: str, user_id: str, question: str, message: str, co
 def get_user_history(user_id: str) -> dict:
     try:
         sessions_ref = db.collection("sessions")
-        # 🔥 FIX 1: Chỉ lấy dữ liệu về, KHÔNG DÙNG order_by để Firebase khỏi chặn
+        #  FIX 1: Chỉ lấy dữ liệu về, KHÔNG DÙNG order_by để Firebase khỏi chặn
         query = sessions_ref.where("userId", "==", user_id)
         
         sessions_docs = query.stream()
@@ -121,7 +124,7 @@ def get_user_history(user_id: str) -> dict:
             s_info["id"] = doc.id
             sessions_list.append(s_info)
 
-        # 🔥 FIX 2: Sắp xếp các buổi học bằng Python (Bài học mới nhất xếp trước)
+        #  FIX 2: Sắp xếp các buổi học bằng Python (Bài học mới nhất xếp trước)
         sessions_list.sort(key=lambda x: x.get("createdAt").timestamp() if hasattr(x.get("createdAt"), "timestamp") else 0, reverse=True)
 
         for session_info in sessions_list:
@@ -133,7 +136,7 @@ def get_user_history(user_id: str) -> dict:
             
             chat_history = [fb.to_dict() for fb in feedbacks_docs]
 
-            # 🔥 FIX 3: Sắp xếp các câu nói trong buổi học bằng Python (Cũ nhất lên trước để đọc từ trên xuống)
+            #  FIX 3: Sắp xếp các câu nói trong buổi học bằng Python (Cũ nhất lên trước để đọc từ trên xuống)
             chat_history.sort(key=lambda x: x.get("timestamp").timestamp() if hasattr(x.get("timestamp"), "timestamp") else 0)
 
             history_data.append({
