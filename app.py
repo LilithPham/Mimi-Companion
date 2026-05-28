@@ -9,6 +9,7 @@ import os
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
+from datetime import datetime
 
 # ==========================================
 # 🎙️ VY'S AUDIO PROCESSOR (OPTIMIZED)
@@ -73,7 +74,7 @@ def switch_page(page_name):
     st.rerun()
 
 def load_history_from_db():
-    """Hàm kéo dữ liệu từ Firebase của Quyên về đắp lên giao diện (Review & Notebook)"""
+    """Hàm kéo dữ liệu từ Firebase về, bao gồm cả Từ Vựng và Câu Hỏi"""
     if st.session_state.user_info:
         res = get_user_history(st.session_state.user_info["id"])
         if res.get("success"):
@@ -81,15 +82,28 @@ def load_history_from_db():
             for session_obj in res["data"]:
                 topic = session_obj["session"].get("topic", "Chủ đề cũ")
                 for fb in session_obj["chatHistory"]:
+                    
+                    # Phục hồi lỗi ngữ pháp
+                    grammar_errors = []
+                    if fb.get("grammarMistake"):
+                        parts = fb["grammarMistake"].split(" | ")
+                        for p in parts:
+                            if "->" in p:
+                                orig, corr = p.split("->", 1)
+                                grammar_errors.append({"original": orig, "correction": corr, "explanation": "Ghi chú từ bài học trước"})
+                    
+                    # Phục hồi từ vựng
+                    vocab_list = fb.get("vocabulary", [])
+                    
                     history_list.append({
-                        "question": "[Câu hỏi cũ từ Database]",
+                        "question": fb.get("question", "[Câu hỏi từ hệ thống]"),
                         "translation": "",
                         "user_transcript": fb.get("message", ""),
                         "feedback": f"Lịch sử luyện tập chủ đề: {topic}",
                         "logic_check": "",
                         "native_suggestion": fb.get("correction", ""),
-                        "grammar_errors": [{"original": "Lỗi", "correction": fb.get("grammarMistake", ""), "explanation": "Ghi chú từ DB"}] if fb.get("grammarMistake") else [],
-                        "vocabulary": [],
+                        "grammar_errors": grammar_errors,
+                        "vocabulary": vocab_list,
                         "topic": topic
                     })
             st.session_state.review_history = history_list
@@ -139,7 +153,7 @@ saved_user_name = cookies.get("mimi_user_name")
 if saved_user_id and saved_user_name and st.session_state.user_info is None:
     st.session_state.user_info = {"id": saved_user_id, "name": saved_user_name}
     st.session_state.mimi_bot = MimiBrain()
-    load_history_from_db() # Nạp lịch sử cũ ngay khi vào app
+    load_history_from_db() 
     switch_page("animal_selection") 
 
 # ==========================================
@@ -171,10 +185,8 @@ elif st.session_state.page == "auth":
                     if result["success"]:
                         cookies.set("mimi_user_id", result["user_id"], max_age=7*24*3600)
                         cookies.set("mimi_user_name", result["name"], max_age=7*24*3600)
-                        
                         st.session_state.user_info = {"id": result["user_id"], "name": result["name"]}
-                        load_history_from_db() # Nạp lịch sử cũ
-                        
+                        load_history_from_db() 
                         st.success(f"Chào mừng {result['name']} trở lại! Đang chuyển hướng...")
                         components.html("<script>setTimeout(function() { window.parent.location.reload(); }, 1000);</script>", height=0)
                     else:
@@ -193,10 +205,8 @@ elif st.session_state.page == "auth":
                     if result["success"]:
                         cookies.set("mimi_user_id", result["user_id"], max_age=7*24*3600)
                         cookies.set("mimi_user_name", result["name"], max_age=7*24*3600)
-                        
                         st.session_state.user_info = {"id": result["user_id"], "name": result["name"]}
-                        st.session_state.review_history = [] # Tài khoản mới nên sổ tay trống
-                        
+                        st.session_state.review_history = [] 
                         st.success("Đăng ký thành công! Đang chuyển hướng...")
                         components.html("<script>setTimeout(function() { window.parent.location.reload(); }, 1000);</script>", height=0)
                     else:
@@ -262,7 +272,6 @@ elif st.session_state.page == "practice":
                     if item['grammar_errors']:
                         st.write("### 🔍 Lỗi Ngữ Pháp")
                         for err in item['grammar_errors']:
-                            # Handle cả 2 trường hợp: object dict (từ code cũ) và object pydantic (từ code AI)
                             original = err.original if hasattr(err, 'original') else err.get("original", "")
                             correction = err.correction if hasattr(err, 'correction') else err.get("correction", "")
                             explanation = err.explanation if hasattr(err, 'explanation') else err.get("explanation", "")
@@ -272,8 +281,11 @@ elif st.session_state.page == "practice":
                     if item['vocabulary']:
                         st.write("### ✨ Nâng cấp Từ Vựng")
                         for voc in item['vocabulary']:
-                            st.write(f"- Thử dùng: **{voc.correction}** thay vì '{voc.original}'")
-                            st.caption(f"Lý do: {voc.explanation}")
+                            v_orig = voc.original if hasattr(voc, 'original') else voc.get("original", "")
+                            v_corr = voc.correction if hasattr(voc, 'correction') else voc.get("correction", "")
+                            v_exp = voc.explanation if hasattr(voc, 'explanation') else voc.get("explanation", "")
+                            st.write(f"- Thử dùng: **{v_corr}** thay vì '{v_orig}'")
+                            st.caption(f"Lý do: {v_exp}")
 
     # ==========================================
     # 📓 TAB 3: MIMI'S NOTEBOOK
@@ -286,11 +298,15 @@ elif st.session_state.page == "practice":
         for item in st.session_state.review_history:
             if item.get('vocabulary'):
                 for voc in item['vocabulary']:
+                    v_orig = voc.original if hasattr(voc, 'original') else voc.get("original", "")
+                    v_corr = voc.correction if hasattr(voc, 'correction') else voc.get("correction", "")
+                    v_exp = voc.explanation if hasattr(voc, 'explanation') else voc.get("explanation", "")
+                    
                     saved_vocab.append({
                         "topic": item.get('topic', st.session_state.current_topic),
-                        "original": voc.original,
-                        "correction": voc.correction,
-                        "explanation": voc.explanation
+                        "original": v_orig,
+                        "correction": v_corr,
+                        "explanation": v_exp
                     })
 
         if not saved_vocab:
@@ -343,7 +359,6 @@ elif st.session_state.page == "practice":
                                 st.session_state.current_topic = topic["val"]
                                 st.session_state.messages = []
                                 
-                                # 🔥 TẠO SESSION TRÊN FIREBASE KHI CHỌN CHỦ ĐỀ
                                 res = create_session(st.session_state.user_info["id"], topic["val"])
                                 if res.get("success"):
                                     st.session_state.current_firebase_session_id = res["sessionId"]
@@ -363,6 +378,7 @@ elif st.session_state.page == "practice":
                     st.session_state.recorded_text = ""
                     st.session_state.show_feedback = False
                     st.session_state.current_firebase_session_id = None
+                    load_history_from_db() 
                     st.rerun()
             with col2:
                 st.title(f"🎙️ Practice: {st.session_state.current_topic}")
@@ -469,16 +485,21 @@ elif st.session_state.page == "practice":
                     st.success(f"{st.session_state.selected_mimi} has the next question ready!")
                     
                     if st.button("Continue Conversation ➡️", use_container_width=True):
-                        # 🔥 LƯU DỮ LIỆU LÊN FIREBASE
+                        
+                        # 🔥 ĐÓNG GÓI TỪ VỰNG VÀ CÂU HỎI ĐỂ ĐẨY LÊN DATABASE
                         if st.session_state.current_firebase_session_id:
                             grammar_str = " | ".join([f"{e.original}->{e.correction}" for e in eval_data.grammar_errors]) if eval_data.grammar_errors else ""
+                            vocab_data = [{"original": v.original, "correction": v.correction, "explanation": v.explanation} for v in eval_data.vocabulary_improvements] if eval_data.vocabulary_improvements else []
+                            
                             save_feedback(
                                 session_id=st.session_state.current_firebase_session_id,
                                 user_id=st.session_state.user_info["id"],
+                                question=q.question_en,        # Đẩy Câu hỏi lên
                                 message=saved_transcript,
                                 correction=eval_data.native_suggestion,
                                 grammar_mistake=grammar_str,
-                                score=10.0 # Tạm gắn điểm 10, version sau AI sẽ tự chấm
+                                vocabulary=vocab_data,         # Đẩy Từ vựng lên
+                                score=10.0 
                             )
 
                         history_item = {
