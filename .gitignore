@@ -13,3 +13,4 @@ __pycache__/
 .DS_Store
 speechocean762/
 mock_test_audio/
+firebase_key.json
