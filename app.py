@@ -327,59 +327,84 @@ elif st.session_state.page == "practice":
                 """, unsafe_allow_html=True)
 
     # ==========================================
-    # 📈 TAB 4: MY PROGRESS (DASHBOARD)
+    # 📈 TAB 4: MY PROGRESS (DASHBOARD PRO MAX)
     # ==========================================
     elif nav_choice == "📈 My Progress":
-        st.title("📈 Tiến độ học tập của bạn")
-        st.markdown("### 📊 Biểu đồ phân tích hành vi và hiệu suất học tập")
+        st.title("📈 Phân tích chuyên sâu tiến độ học")
+        st.markdown("### 📊 Theo dõi hiệu suất phản xạ và độ chính xác của bạn")
 
         if not st.session_state.review_history:
             st.info("Chưa có dữ liệu thống kê! Hãy trò chuyện với Mimi bên mục Chat để kích hoạt Dashboard nhé.")
         else:
-            # 1. Thuật toán gom dữ liệu và phân tích
+            # 1. THUẬT TOÁN DATA CRUNCHING (Phân tích dữ liệu mảng)
             total_turns = len(st.session_state.review_history)
             total_vocab = 0
             total_grammar_errors = 0
+            
+            # Mảng lưu số lỗi từng câu để vẽ biểu đồ Line Chart
+            errors_per_turn = [] 
             topic_distribution = {}
 
-            for item in st.session_state.review_history:
-                # Gom từ vựng
-                if item.get('vocabulary'):
-                    total_vocab += len(item['vocabulary'])
+            for idx, item in enumerate(st.session_state.review_history):
+                # Đếm số từ vựng cần nâng cấp trong lượt này
+                v_count = len(item.get('vocabulary', [])) if item.get('vocabulary') else 0
+                total_vocab += v_count
                 
-                # Gom lỗi ngữ pháp
-                if item.get('grammar_errors'):
-                    total_grammar_errors += len(item['grammar_errors'])
+                # Đếm số lỗi ngữ pháp trong lượt này
+                g_count = len(item.get('grammar_errors', [])) if item.get('grammar_errors') else 0
+                total_grammar_errors += g_count
                 
-                # Đếm tần suất chủ đề
+                # Tổng lỗi trong 1 câu
+                total_errors_in_sentence = v_count + g_count
+                errors_per_turn.append(total_errors_in_sentence)
+                
+                # Đếm chủ đề
                 current_top = item.get('topic', 'Chủ đề khác')
-                if not current_top: # Xử lý trường hợp chủ đề là None
+                if not current_top: 
                     current_top = 'Chủ đề khác'
                 topic_distribution[current_top] = topic_distribution.get(current_top, 0) + 1
 
-            # 2. Hiển thị các chỉ số đo lường nhanh
-            col_m1, col_m2, col_m3 = st.columns(3)
-            with col_m1:
-                st.metric(label="🔥 Tổng lượt hội thoại", value=f"{total_turns} lượt", delta="Active")
-            with col_m2:
-                st.metric(label="✨ Từ vựng tích lũy", value=f"{total_vocab} cấu trúc")
-            with col_m3:
-                st.metric(label="🔍 Lỗi ngữ pháp đã sửa", value=f"{total_grammar_errors} lỗi", delta="Đang cải thiện", delta_color="inverse")
+            # Tính toán chỉ số quan trọng nhất: Trung bình lỗi / 1 câu
+            avg_errors_per_sentence = round((total_grammar_errors + total_vocab) / total_turns, 1) if total_turns > 0 else 0
+
+            # 2. HIỂN THỊ CHỈ SỐ KPI (Chia làm 4 cột chuyên nghiệp)
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric(label="💬 Tổng số câu đã nói", value=f"{total_turns} câu")
+            with col2:
+                st.metric(label="🔍 Lỗi Ngữ pháp", value=f"{total_grammar_errors} lỗi")
+            with col3:
+                st.metric(label="✨ Từ vựng cần sửa", value=f"{total_vocab} từ")
+            with col4:
+                # Đổi màu chỉ số nếu trung bình lỗi quá cao
+                delta_val = "Cần chậm lại" if avg_errors_per_sentence > 3 else "Phản xạ tốt"
+                delta_color = "inverse" if avg_errors_per_sentence > 3 else "normal"
+                st.metric(label="⚖️ Trung bình lỗi/câu", value=f"{avg_errors_per_sentence}", delta=delta_val, delta_color=delta_color)
 
             st.divider()
 
-            # 3. Trực quan hóa dữ liệu bằng Biểu đồ cột
-            st.subheader("🎯 Tần suất rèn luyện theo từng chủ đề")
-            st.caption("Biểu đồ thể hiện mức độ quan tâm và phân bổ thời gian học của bạn")
+            # 3. TRỰC QUAN HÓA BẰNG BIỂU ĐỒ NÂNG CAO (Data Visualization)
+            col_chart1, col_chart2 = st.columns(2)
             
-            st.bar_chart(topic_distribution)
+            with col_chart1:
+                st.subheader("📉 Tracking số lỗi qua từng câu")
+                st.caption("Trục hoành: Thứ tự câu | Trục tung: Tổng số lỗi (Ngữ pháp + Từ vựng)")
+                # Vẽ biểu đồ đường (Line Chart) để xem trend mắc lỗi
+                st.line_chart(errors_per_turn)
 
-            # 4. Đưa ra nhận xét thông minh
+            with col_chart2:
+                st.subheader("🎯 Tần suất chủ đề luyện tập")
+                st.caption("Các chủ đề bạn thường xuyên nói chuyện nhất")
+                st.bar_chart(topic_distribution)
+
+            # 4. TỰ ĐỘNG CHUẨN ĐOÁN (AI Data Insights)
             st.subheader("💡 Đánh giá từ hệ thống")
-            if total_turns >= 5:
-                st.success("🏆 **Xu hướng học tập tốt:** Bạn đang duy trì mạch học tập rất ổn định. Hãy tiếp tục phát huy để tăng phản xạ nói nhé!")
+            if avg_errors_per_sentence > 4:
+                st.warning("⚡ **Phân tích:** Tần suất lỗi trong mỗi câu của bạn đang khá cao. Lời khuyên là hãy nói chậm lại, sử dụng các mẫu câu ngắn (S+V+O) trước khi thử các câu phức tạp nhé!")
+            elif avg_errors_per_sentence > 2:
+                st.info("📊 **Phân tích:** Mức độ lỗi trung bình. Ý tưởng của bạn rất tốt, nhưng hãy đọc kỹ lại phần 'Mimi's Notebook' để trau chuốt lại cấu trúc câu cho tự nhiên hơn giống người bản xứ.")
             else:
-                st.warning("⚡ **Khuyến nghị:** Bạn nên đa dạng hóa thêm nhiều chủ đề khác nhau để mở rộng vốn từ vựng toàn diện.")
+                st.success("🏆 **Phân tích:** Xuất sắc! Các câu nói của bạn rất gọn gàng và ít lỗi. Khả năng ngữ pháp và vốn từ của bạn đang cực kỳ vững chắc, hãy duy trì phong độ này nhé!")
 
     # ==========================================
     # 🗣️ TAB 1: CHAT WITH MIMI
