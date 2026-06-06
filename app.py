@@ -236,7 +236,8 @@ elif st.session_state.page == "practice":
     with st.sidebar:
         st.markdown(f"## {mimi_icon} Mimi Menu")
         st.write(f"Hello, **{st.session_state.user_info['name']}**!")
-        nav_choice = st.radio("Chế độ:", ["🗣️ Chat with Mimi", "📚 Review your chat", "📓 Mimi's Notebook"]) 
+        # THÊM "📈 My Progress" VÀO CUỐI & SỬA LỖI THỤT LỀ
+        nav_choice = st.radio("Chế độ:", ["🗣️ Chat with Mimi", "📚 Review your chat", "📓 Mimi's Notebook", "📈 My Progress"]) 
         st.divider()
         if st.button("🚪 Logout", use_container_width=True):
             cookies.remove("mimi_user_id")
@@ -324,6 +325,61 @@ elif st.session_state.page == "practice":
                     <p style="margin: 0; color: #7F8C8D; font-size: 0.95rem;">💡 <i>{voc['explanation']}</i></p>
                 </div>
                 """, unsafe_allow_html=True)
+
+    # ==========================================
+    # 📈 TAB 4: MY PROGRESS (DASHBOARD)
+    # ==========================================
+    elif nav_choice == "📈 My Progress":
+        st.title("📈 Tiến độ học tập của bạn")
+        st.markdown("### 📊 Biểu đồ phân tích hành vi và hiệu suất học tập")
+
+        if not st.session_state.review_history:
+            st.info("Chưa có dữ liệu thống kê! Hãy trò chuyện với Mimi bên mục Chat để kích hoạt Dashboard nhé.")
+        else:
+            # 1. Thuật toán gom dữ liệu và phân tích
+            total_turns = len(st.session_state.review_history)
+            total_vocab = 0
+            total_grammar_errors = 0
+            topic_distribution = {}
+
+            for item in st.session_state.review_history:
+                # Gom từ vựng
+                if item.get('vocabulary'):
+                    total_vocab += len(item['vocabulary'])
+                
+                # Gom lỗi ngữ pháp
+                if item.get('grammar_errors'):
+                    total_grammar_errors += len(item['grammar_errors'])
+                
+                # Đếm tần suất chủ đề
+                current_top = item.get('topic', 'Chủ đề khác')
+                if not current_top: # Xử lý trường hợp chủ đề là None
+                    current_top = 'Chủ đề khác'
+                topic_distribution[current_top] = topic_distribution.get(current_top, 0) + 1
+
+            # 2. Hiển thị các chỉ số đo lường nhanh
+            col_m1, col_m2, col_m3 = st.columns(3)
+            with col_m1:
+                st.metric(label="🔥 Tổng lượt hội thoại", value=f"{total_turns} lượt", delta="Active")
+            with col_m2:
+                st.metric(label="✨ Từ vựng tích lũy", value=f"{total_vocab} cấu trúc")
+            with col_m3:
+                st.metric(label="🔍 Lỗi ngữ pháp đã sửa", value=f"{total_grammar_errors} lỗi", delta="Đang cải thiện", delta_color="inverse")
+
+            st.divider()
+
+            # 3. Trực quan hóa dữ liệu bằng Biểu đồ cột
+            st.subheader("🎯 Tần suất rèn luyện theo từng chủ đề")
+            st.caption("Biểu đồ thể hiện mức độ quan tâm và phân bổ thời gian học của bạn")
+            
+            st.bar_chart(topic_distribution)
+
+            # 4. Đưa ra nhận xét thông minh
+            st.subheader("💡 Đánh giá từ hệ thống")
+            if total_turns >= 5:
+                st.success("🏆 **Xu hướng học tập tốt:** Bạn đang duy trì mạch học tập rất ổn định. Hãy tiếp tục phát huy để tăng phản xạ nói nhé!")
+            else:
+                st.warning("⚡ **Khuyến nghị:** Bạn nên đa dạng hóa thêm nhiều chủ đề khác nhau để mở rộng vốn từ vựng toàn diện.")
 
     # ==========================================
     # 🗣️ TAB 1: CHAT WITH MIMI
