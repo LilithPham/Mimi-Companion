@@ -66,29 +66,29 @@ The platform features a `My Progress` dashboard that goes beyond simple word cou
 ```bash
 git clone [https://github.com/LilithPham/Mimi-Companion.git](https://github.com/LilithPham/Mimi-Companion.git)
 cd Mimi-Companion
-
+```
 ### 2. Install dependencies
 ```bash
 pip install -r requirements.txt
-
+```
 ### 3. Environment Variables
 Create a .env file in the root directory and add your API keys:
 ```bash
 GEMINI_API_KEY="your_google_api_key_here"
-
+```
 ### 4. Run the application
 The app will be available locally at http://localhost:8501.
 ```bash
 streamlit run app.py
-
+```
 ---
 ## 👥 Team
 Developed by Computer Science students at Vietnamese-German University (VGU):
 
-*   **Pham Minh Thu - Tech Lead, AI Core & Frontend Architecture
+*   **Pham Minh Thu - Tech Lead, AI Core & Frontend Architecture**
 
-*   **Huynh Ngoc Vy - Audio Processing Engine
+*   **Huynh Ngoc Vy - Audio Processing Engine**
 
-*   **Phan Thuc Quyen - Database Architecture & Analytics
+*   **Phan Thuc Quyen - Database Architecture & Analytics**
 
 This project is submitted as a capstone/group project for the Applied AI curriculum.
