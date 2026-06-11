@@ -81,6 +81,7 @@ The app will be available locally at http://localhost:8501.
 ```bash
 streamlit run app.py
 
+---
 ## 👥 Team
 Developed by Computer Science students at Vietnamese-German University (VGU):
 
