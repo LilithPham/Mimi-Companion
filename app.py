@@ -327,7 +327,7 @@ elif st.session_state.page == "practice":
                 """, unsafe_allow_html=True)
 
     # ==========================================
-    # 📈 TAB 4: MY PROGRESS (DASHBOARD PRO MAX + NLP METRIC)
+    # 📈 TAB 4: MY PROGRESS (DASHBOARD PRO MAX + NLP METRICS)
     # ==========================================
     elif nav_choice == "📈 My Progress":
         st.title("📈 Phân tích chuyên sâu tiến độ học")
@@ -369,6 +369,21 @@ elif st.session_state.page == "practice":
                     current_top = 'Chủ đề khác'
                 topic_distribution[current_top] = topic_distribution.get(current_top, 0) + 1
 
+            # ---- Thuật toán NLP: Tìm từ lặp lại nhiều nhất (Loại bỏ Stopwords) ----
+            from collections import Counter
+            # Tập hợp các "từ dừng" không mang ý nghĩa chính
+            STOP_WORDS = {"i", "you", "he", "she", "it", "we", "they", "me", "him", "them", "my", "your", "his", "her", "our", "their", "is", "am", "are", "was", "were", "be", "been", "do", "does", "did", "have", "has", "had", "a", "an", "the", "and", "but", "or", "so", "if", "because", "as", "to", "in", "on", "at", "by", "for", "with", "about", "that", "this", "these", "those", "it's", "i'm", "don't", "can", "will", "just", "like", "very", "really", "of"}
+            
+            # Chỉ lấy các từ dài hơn 1 ký tự và không nằm trong tập STOP_WORDS
+            meaningful_words = [w for w in all_spoken_words if w not in STOP_WORDS and len(w) > 1]
+            word_counts = Counter(meaningful_words)
+            top_repeated = word_counts.most_common(3) # Lấy top 3 từ hay lặp nhất
+            
+            if top_repeated and top_repeated[0][1] > 1:
+                top_words_str = ", ".join([f"**'{w}'** ({c} lần)" for w, c in top_repeated])
+            else:
+                top_words_str = "_Chưa có đủ dữ liệu để phân tích_"
+
             # 2. TÍNH TOÁN CÁC CHỈ SỐ CỐT LÕI (KPIs)
             # Chỉ số NLP: Type-Token Ratio (Tỷ lệ từ vựng không trùng lặp)
             total_words_count = len(all_spoken_words)
@@ -378,7 +393,7 @@ elif st.session_state.page == "practice":
             # Chỉ số: Trung bình lỗi / 1 câu
             avg_errors_per_sentence = round((total_grammar_errors + total_vocab) / total_turns, 1) if total_turns > 0 else 0
 
-            # 3. HIỂN THỊ METRICS (Nâng cấp lên 5 cột)
+            # 3. HIỂN THỊ METRICS (5 cột)
             col1, col2, col3, col4, col5 = st.columns(5)
             with col1:
                 st.metric(label="💬 Số câu đã nói", value=f"{total_turns} câu")
@@ -391,9 +406,11 @@ elif st.session_state.page == "practice":
                 delta_color = "inverse" if avg_errors_per_sentence > 3 else "normal"
                 st.metric(label="⚖️ Lỗi/câu", value=f"{avg_errors_per_sentence}", delta=delta_val, delta_color=delta_color)
             with col5:
-                # Hiển thị chỉ số học thuật NLP
                 richness_delta = "Vốn từ phong phú!" if lexical_richness >= 40 else "Nên dùng từ mới"
                 st.metric(label="🧠 Đa dạng từ vựng", value=f"{lexical_richness}%", delta=richness_delta)
+
+            # Khối Highlight hiển thị Thói quen lặp từ
+            st.info(f"🔄 **Thói quen dùng từ:** Bạn đang lặp lại các từ khóa này khá nhiều: {top_words_str}. Hãy thử đọc 'Mimi's Notebook' để tìm từ đồng nghĩa giúp câu văn sinh động hơn nhé!")
 
             st.divider()
 
